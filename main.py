@@ -11,7 +11,10 @@ app = FastAPI()
 # CORS (restrict in production)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # change in production
+    allow_origins=[
+        "http://localhost:5173",
+        "https://fastapi-cs6g.onrender.com"
+    ],  # change in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
