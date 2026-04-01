@@ -1,5 +1,5 @@
 from fastapi import FastAPI, File, UploadFile, Request, HTTPException
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 import os
@@ -8,17 +8,24 @@ import shutil
 
 app = FastAPI()
 
-# CORS (restrict in production)
+# ✅ Proper CORS setup
+origins = [
+    "http://localhost:5173",
+    "https://fastapi-cs6g.onrender.com",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "https://fastapi-cs6g.onrender.com"
-    ],  # change in production
+    allow_origins=origins,
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ✅ Explicit preflight handler (important for Render)
+@app.options("/{rest_of_path:path}")
+async def preflight_handler(rest_of_path: str):
+    return Response(status_code=200)
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -26,7 +33,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 
-# ✅ Export Excel (unchanged)
+# ✅ Export Excel
 @app.post("/export")
 def export_excel(data: dict):
     import openpyxl
@@ -55,11 +62,10 @@ def export_excel(data: dict):
     )
 
 
-# ✅ UPDATED Upload API (Important)
+# ✅ Upload API
 @app.post("/upload")
 async def upload_file(request: Request, file: UploadFile = File(...)):
 
-    # Validate extension
     allowed_ext = [".xlsx", ".xls"]
     ext = os.path.splitext(file.filename)[1].lower()
 
@@ -69,15 +75,12 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
     unique_name = f"{uuid.uuid4()}{ext}"
     file_path = os.path.join(UPLOAD_DIR, unique_name)
 
-    # Save file safely (streaming)
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    # Build public URL dynamically
-    base_url = str(request.base_url).rstrip("/")
-    public_url = f"{base_url}/uploads/{unique_name}"
+    public_url = f"https://fastapi-cs6g.onrender.com/uploads/{unique_name}"
 
-    return JSONResponse({
+    return {
         "fileName": file.filename,
         "publicUrl": public_url
-    })
+    }
