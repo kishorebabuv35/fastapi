@@ -15,7 +15,7 @@ app.add_middleware(
         "http://localhost:5173",
         "https://fastapi-cs6g.onrender.com"
     ],  # change in production
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
